@@ -15,7 +15,7 @@ type Password struct {
 	R1         *rand.Rand
 }
 
-// GenerateCharacter implements teh Password Interface contract and returns a random character as part of the overall password
+// GenerateCharacter implements the Password Interface contract and returns a random character as part of the overall password
 func (p Password) GenerateCharacter() string {
 	alphaLen := len(p.Characters)
 	index := p.R1.Intn(alphaLen)
