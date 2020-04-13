@@ -1,10 +1,8 @@
 package password
 
 import (
-	"math/rand"
 	"strings"
 	"testing"
-	"time"
 )
 
 //This won't work...go does support lookahead operations
@@ -19,70 +17,109 @@ import (
 // At least one special character, (?=.*?[#?!@$%^&*-])
 // Minimum eight in length .{8,} (with the anchors)
 
-func TestLowerAlphaPassword(t *testing.T) {
-	length := 6
-	s1 := rand.NewSource(time.Now().UnixNano())
-	r1 := rand.New(s1)
-
-	alpha := Password{
-		Characters: "abcdefghijklmnopqrstuvwxyz",
-		R1:         r1,
+func TestPassword(t *testing.T) {
+	testCases := []struct {
+		testTitle         string
+		passwordLength    int
+		password          []Password
+		invalidCharacters string
+	}{
+		{
+			testTitle:      "Test Lowercase Alphabet Password",
+			passwordLength: 6,
+			password: []Password{
+				Password{
+					Characters: "abcdefghijklmnopqrstuvwxyz",
+				},
+			},
+			invalidCharacters: "ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890!@#$%^&*(){}[]\\/?,.<>~`",
+		},
+		{
+			testTitle:      "Test Uppercase Alphabet Password",
+			passwordLength: 8,
+			password: []Password{
+				Password{
+					Characters: "ABCDEFGHIJKLMNOPQRSTUVWXYZ",
+				},
+			},
+			invalidCharacters: "abcdefghijklmnopqrstuvwxyz1234567890!@#$%^&*(){}[]\\/?,.<>~`",
+		},
+		{
+			testTitle:      "Test Mixed Alphabet Password",
+			passwordLength: 10,
+			password: []Password{
+				Password{
+					Characters: "ABCDEFGHIJKLMNOPQRSTUVWXYZ",
+				},
+				Password{
+					Characters: "abcdefghijklmnopqrstuvwxyz",
+				},
+			},
+			invalidCharacters: "1234567890!@#$%^&*(){}[]\\/?,.<>~`",
+		},
+		{
+			testTitle:      "Test AlphaNumerical Password",
+			passwordLength: 12,
+			password: []Password{
+				Password{
+					Characters: "ABCDEFGHIJKLMNOPQRSTUVWXYZ",
+				},
+				Password{
+					Characters: "abcdefghijklmnopqrstuvwxyz",
+				},
+				Password{
+					Characters: "0123456789",
+				},
+			},
+			invalidCharacters: "!@#$%^&*(){}[]\\/?,.<>~`",
+		},
+		{
+			testTitle:      "Test AlphaNumerical with Special Characters",
+			passwordLength: 20,
+			password: []Password{
+				Password{
+					Characters: "ABCDEFGHIJKLMNOPQRSTUVWXYZ",
+				},
+				Password{
+					Characters: "abcdefghijklmnopqrstuvwxyz",
+				},
+				Password{
+					Characters: "0123456789",
+				},
+				Password{
+					Characters: "!@#$%^&*(){}[]\\/?,.<>~`",
+				},
+			},
+			invalidCharacters: "",
+		},
 	}
 
-	notAllowed := "ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890!@#$%^&*(){}[]\\/?,.<>~`"
+	for _, testCase := range testCases {
+		t.Run(testCase.testTitle, func(t *testing.T) {
+			passBldr := PasswordBuilder(testCase.passwordLength)
+			passwordInterfaces := make([]PasswordInterface, len(testCase.password))
+			for index, value := range testCase.password {
+				passwordInterfaces[index] = value
+			}
+			password := passBldr(passwordInterfaces...)
+			if password == "" {
+				t.Error("Got an empty string")
+			}
 
-	passBldr := PasswordBuilder(length, r1)
+			if len(password) != testCase.passwordLength {
+				t.Errorf("Invalid password length; expected %v, got %v", testCase.passwordLength, len(password))
+			}
 
-	password := passBldr(alpha)
+			if strings.ContainsAny(password, testCase.invalidCharacters) {
+				t.Errorf("generated password contains invalid characters; %v", password)
+			}
 
-	if password == "" {
-		t.Error("Got an empty string")
-	}
-
-	if len(password) != length {
-		t.Errorf("Invalid password length; expected %v, got %v", length, len(password))
-	}
-
-	if strings.ContainsAny(password, notAllowed) {
-		t.Errorf("generated password contains invalid characters; %v", password)
-	}
-}
-
-func TestMixedAlphaPassword(t *testing.T) {
-	length := 6
-	s1 := rand.NewSource(time.Now().UnixNano())
-	r1 := rand.New(s1)
-
-	upperAlpha := Password{
-		Characters: "ABCDEFGHIJKLMNOPQRSTUVWXYZ",
-		R1:         r1,
-	}
-
-	lowerAlpha := Password{
-		Characters: "abcdefghijklmnopqrstuvwxyz",
-		R1:         r1,
-	}
-
-	notAllowed := "1234567890!@#$%^&*(){}[]\\/?,.<>~`"
-
-	passBldr := PasswordBuilder(length, r1)
-
-	password := passBldr(upperAlpha, lowerAlpha)
-
-	if password == "" {
-		t.Error("Got an empty string")
-	}
-
-	if len(password) != length {
-		t.Errorf("Invalid password length; expected %v, got %v", length, len(password))
-	}
-
-	if strings.ContainsAny(password, notAllowed) {
-		t.Errorf("generated password contains invalid characters; %v", password)
-	}
-
-	if strings.IndexAny(password, lowerAlpha.Characters) == -1 ||
-		strings.IndexAny(password, upperAlpha.Characters) == -1 {
-		t.Errorf("generated password contains invalid characters; %v", password)
+			//--Regex support?
+			for _, value := range testCase.password {
+				if !strings.ContainsAny(password, value.Characters) {
+					t.Errorf("generated password does not contain selected characters from: %v", value.Characters)
+				}
+			}
+		})
 	}
 }

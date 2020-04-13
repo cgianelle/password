@@ -2,32 +2,34 @@ package password
 
 import (
 	"math/rand"
+	"time"
 )
 
 // PasswordInterface Defines the interface that the password generators must honor
 type PasswordInterface interface {
-	GenerateCharacter() string
+	GenerateCharacter(r1 *rand.Rand) string
 }
 
 // Password This is the alpha password generator
 type Password struct {
 	Characters string
-	R1         *rand.Rand
 }
 
 // GenerateCharacter implements the Password Interface contract and returns a random character as part of the overall password
-func (p Password) GenerateCharacter() string {
+func (p Password) GenerateCharacter(r1 *rand.Rand) string {
 	alphaLen := len(p.Characters)
-	index := p.R1.Intn(alphaLen)
+	index := r1.Intn(alphaLen)
 	return string(p.Characters[index])
 }
 
-func PasswordBuilder(length int, r1 *rand.Rand) func(pwds ...PasswordInterface) string {
+func PasswordBuilder(length int) func(pwds ...PasswordInterface) string {
+	s1 := rand.NewSource(time.Now().UnixNano())
+	r1 := rand.New(s1)
 	return func(pwds ...PasswordInterface) string {
 		var password string
 		for i := 0; i < length; i++ {
 			pwd := pwds[r1.Intn(len(pwds))]
-			password += pwd.GenerateCharacter()
+			password += pwd.GenerateCharacter(r1)
 		}
 		return password
 	}
